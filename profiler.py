@@ -482,8 +482,9 @@ class RequestProfiler(object):
 
 class ProfilerWSGIMiddleware(object):
 
-    def __init__(self, app):
+    def __init__(self, app, keep_appstats=True):
         self.app = app
+        self.keep_appstats = keep_appstats
 
     def __call__(self, environ, start_response):
 
@@ -492,7 +493,10 @@ class ProfilerWSGIMiddleware(object):
         # Never profile calls to the profiler itself to avoid endless recursion.
         if (not config.should_profile() or
             environ.get("PATH_INFO", "").startswith("/gae_mini_profiler/")):
-            result = self.app(environ, start_response)
+            app = self.app
+            if self.keep_appstats:
+                app = recording.appstats_wsgi_middleware(app)
+            result = app(environ, start_response)
             for value in result:
                 yield value
         else:
