@@ -37,7 +37,7 @@ def _parse_list(text):
 	if m:
 	    return result, text
 	element, text = _parse(text)
-	result.append(element)
+	if element: result.append(element)
 	_, text = _consume_re(_LIST_SEPARATOR, text)
 
 
@@ -63,7 +63,7 @@ def _parse_dict(text, name):
 	m, text = _consume_re(_DICT_FIELD, text)
 	if m:
 	    element, text = _parse(text)
-	    kwargs[ m.group(1).strip("_") ] = element
+	    if element: kwargs[ m.group(1).strip("_") ] = element
 	    continue
 	element, text = _parse(text)
 	args.append(element)
@@ -82,7 +82,7 @@ def _parse(text):
         return m.group(1) == "True", text
     m, text = _consume_re(_DETAILS_OMMITTED, text)
     if m:
-        return "...", text
+        return None, text
     m, text = _consume_re(_LIST, text)
     if m:
         return _parse_list(text)

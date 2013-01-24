@@ -31,7 +31,7 @@ import pickle
 import config
 import util
 
-dev_server = os.environ["SERVER_SOFTWARE"].startswith("Devel")
+dev_server = os.environ.get("SERVER_SOFTWARE", "").startswith("Devel")
 
 
 class CurrentRequestId(object):
@@ -517,7 +517,7 @@ class ProfilerWSGIMiddleware(object):
 
                 # Append headers used when displaying profiler results from ajax requests
                 headers.append(("X-MiniProfiler-Id", CurrentRequestId.get()))
-                headers.append(("X-MiniProfiler-QS", environ.get("QUERY_STRING")))
+                headers.append(("X-MiniProfiler-QS", str(environ.get("QUERY_STRING"))))
 
                 return start_response(status, headers, exc_info)
 
