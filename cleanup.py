@@ -242,10 +242,12 @@ def datastore_get(request):
         return cleanup_key(keys[0])
 
 def cleanup_key(key):
-    if 'Reference' not in key: 
-        #sometimes key is passed in as '...'
-        return key
-    els = key['Reference']['path']['Path']['element']
+    els = key
+    for i in ('Reference', 'path', 'Path', 'element'):
+        # sometimes the data is truncated to '...'
+        if not isinstance(els, dict): return '...'
+        if i not in els: return '...'
+        els = els[i]
     paths = []
     for el in els:
         if 'Path_Element' in el:
