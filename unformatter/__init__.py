@@ -16,6 +16,62 @@ _DICT_SEPARATOR = _LIST_SEPARATOR
 _DICT_END = re.compile(r"^\s*>\s*")
 
 
+class _EmptyObject(object):
+  """An "empty" object returning itself when indexed.
+  Used to avoid KeyErrors and the like"""
+
+  _INSTANCE = None
+
+  def __int__(self):
+    return 0
+
+  def __str__(self):
+    return ''
+
+  def __nonzero__(self):
+    return False
+
+  def __getattr__(self, name):
+    return _EmptyObject._INSTANCE
+
+  def __len__(self):
+    return 0
+
+  def __getitem__(self, key):
+    return _EmptyObject._INSTANCE
+
+  def __iter__(self):
+    return iter([])
+
+  def __reversed__(self):
+    return self
+
+  def __contains__(self, item):
+    return False
+
+  def items(self):
+    return {}.items()
+
+  def iteritems(self):
+    return {}.iteritems()
+
+_EmptyObject._INSTANCE = _EmptyObject()
+
+
+class _MaleableList(list):
+  def __getitem__(self, key):
+    if key < self.__len__():
+      return super(_MaleableList, self).__getitem__(key)
+    return _EmptyObject._INSTANCE
+
+
+class _MaleableDict(dict):
+  def __getitem__(self, key):
+    if self.__contains__(key):
+      return super(_MaleableDict, self).__getitem__(key)
+    return _EmptyObject._INSTANCE
+
+
 def _consume_re(re, text):
     m = re.match(text)
     if not m:
@@ -31,7 +87,7 @@ def _parse_string(text, quote_char):
 
 
 def _parse_list(text):
-    result = []
+    result = _MaleableList()
     while True:
         m, text = _consume_re(_LIST_END, text)
 	if m:
@@ -42,8 +98,8 @@ def _parse_list(text):
 
 
 def _parse_dict(text, name):
-    args = []
-    kwargs = {}
+    args = _MaleableList()
+    kwargs = _MaleableDict()
     while True:
         m, text = _consume_re(_DICT_END, text)
 	if m:
@@ -55,7 +111,7 @@ def _parse_dict(text, name):
 	    elif kwargs:
 	        obj = kwargs
 	    else:
-	        obj = None
+	        obj = _EmptyObject._INSTANCE
 	    return {name: obj}, text
 	m, text = _consume_re(_DICT_SEPARATOR, text)
 	if m:
@@ -82,7 +138,7 @@ def _parse(text):
         return m.group(1) == "True", text
     m, text = _consume_re(_DETAILS_OMMITTED, text)
     if m:
-        return None, text
+        return _EmptyObject._INSTANCE, text
     m, text = _consume_re(_LIST, text)
     if m:
         return _parse_list(text)
