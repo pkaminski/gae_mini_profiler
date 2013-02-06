@@ -6,7 +6,10 @@ import sys
 _STRING = re.compile(r"^\s*(['\"])")
 _NUMBER = re.compile(r"^\s*(\d+L?)\s*")
 _BOOLEAN = re.compile(r"^\s*(True|False)\s*")
-_DETAILS_OMMITTED = re.compile(r"^\s*\.\.\.\s*")
+_DETAILS_OMMITTED = re.compile(r'''
+    ^\s*\.\.\.    # start with ... (and maybe spaces)
+    [^\s'",;\]>]* # consume anything up until a separator''',
+    re.X)
 _LIST = re.compile(r"^\s*\[")
 _LIST_SEPARATOR = re.compile(r"^\s*,\s*")
 _LIST_END = re.compile(r"^\s*]\s*")
@@ -17,59 +20,59 @@ _DICT_END = re.compile(r"^\s*>\s*")
 
 
 class _EmptyObject(object):
-  """An "empty" object returning itself when indexed.
-  Used to avoid KeyErrors and the like"""
+    """An "empty" object returning itself when indexed.
+    Used to avoid KeyErrors and the like"""
 
-  _INSTANCE = None
+    _INSTANCE = None
 
-  def __int__(self):
-    return 0
+    def __int__(self):
+        return 0
 
-  def __str__(self):
-    return ''
+    def __str__(self):
+        return ''
 
-  def __nonzero__(self):
-    return False
+    def __nonzero__(self):
+        return False
 
-  def __getattr__(self, name):
-    return _EmptyObject._INSTANCE
+    def __getattr__(self, name):
+        return _EmptyObject._INSTANCE
 
-  def __len__(self):
-    return 0
+    def __len__(self):
+        return 0
 
-  def __getitem__(self, key):
-    return _EmptyObject._INSTANCE
+    def __getitem__(self, key):
+        return _EmptyObject._INSTANCE
 
-  def __iter__(self):
-    return iter([])
+    def __iter__(self):
+        return iter([])
 
-  def __reversed__(self):
-    return self
+    def __reversed__(self):
+        return self
 
-  def __contains__(self, item):
-    return False
+    def __contains__(self, item):
+        return False
 
-  def items(self):
-    return {}.items()
+    def items(self):
+        return {}.items()
 
-  def iteritems(self):
-    return {}.iteritems()
+    def iteritems(self):
+        return {}.iteritems()
 
 _EmptyObject._INSTANCE = _EmptyObject()
 
 
 class _MaleableList(list):
-  def __getitem__(self, key):
-    if key < self.__len__():
-      return super(_MaleableList, self).__getitem__(key)
-    return _EmptyObject._INSTANCE
+    def __getitem__(self, key):
+        if key < self.__len__():
+            return super(_MaleableList, self).__getitem__(key)
+        return _EmptyObject._INSTANCE
 
 
 class _MaleableDict(dict):
-  def __getitem__(self, key):
-    if self.__contains__(key):
-      return super(_MaleableDict, self).__getitem__(key)
-    return _EmptyObject._INSTANCE
+    def __getitem__(self, key):
+        if self.__contains__(key):
+            return super(_MaleableDict, self).__getitem__(key)
+        return _EmptyObject._INSTANCE
 
 
 def _consume_re(re, text):
@@ -90,11 +93,11 @@ def _parse_list(text):
     result = _MaleableList()
     while True:
         m, text = _consume_re(_LIST_END, text)
-	if m:
-	    return result, text
-	element, text = _parse(text)
-	if element: result.append(element)
-	_, text = _consume_re(_LIST_SEPARATOR, text)
+        if m:
+            return result, text
+        element, text = _parse(text)
+        if element: result.append(element)
+        _, text = _consume_re(_LIST_SEPARATOR, text)
 
 
 def _parse_dict(text, name):
@@ -102,27 +105,27 @@ def _parse_dict(text, name):
     kwargs = _MaleableDict()
     while True:
         m, text = _consume_re(_DICT_END, text)
-	if m:
-	    if args and kwargs:
-	        obj = { 'args': args }
-		obj.update(kwargs)
-	    elif args:
-	        obj = args if len(args) > 1 else args[0]
-	    elif kwargs:
-	        obj = kwargs
-	    else:
-	        obj = _EmptyObject._INSTANCE
-	    return {name: obj}, text
-	m, text = _consume_re(_DICT_SEPARATOR, text)
-	if m:
-	    continue
-	m, text = _consume_re(_DICT_FIELD, text)
-	if m:
-	    element, text = _parse(text)
-	    if element: kwargs[ m.group(1).strip("_") ] = element
-	    continue
-	element, text = _parse(text)
-	args.append(element)
+        if m:
+            if args and kwargs:
+                obj = { 'args': args }
+                obj.update(kwargs)
+            elif args:
+                obj = args if len(args) > 1 else args[0]
+            elif kwargs:
+                obj = kwargs
+            else:
+                obj = _EmptyObject._INSTANCE
+            return {name: obj}, text
+        m, text = _consume_re(_DICT_SEPARATOR, text)
+        if m:
+            continue
+        m, text = _consume_re(_DICT_FIELD, text)
+        if m:
+            element, text = _parse(text)
+            if element: kwargs[ m.group(1).strip("_") ] = element
+            continue
+        element, text = _parse(text)
+        args.append(element)
 
 
 def _parse(text):
@@ -132,7 +135,7 @@ def _parse(text):
     m, text = _consume_re(_NUMBER, text)
     if m:
         value = long(m.group(1)[:-1]) if m.group(1).endswith("L") else int(m.group(1))
-	return value, text
+        return value, text
     m, text = _consume_re(_BOOLEAN, text)
     if m:
         return m.group(1) == "True", text
