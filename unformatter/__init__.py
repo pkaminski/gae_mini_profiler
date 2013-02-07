@@ -6,7 +6,7 @@ import sys
 _STRING = re.compile(r"^\s*(['\"])")
 _NUMBER = re.compile(r"^\s*(\d+L?)\s*")
 _BOOLEAN = re.compile(r"^\s*(True|False)\s*")
-_DETAILS_OMMITTED = re.compile(r'''
+_DETAILS_OMITTED = re.compile(r'''
     ^\s*\.\.\.    # start with ... (and maybe spaces)
     [^\s'",;\]>]* # consume anything up until a separator''',
     re.X)
@@ -107,7 +107,7 @@ def _parse_dict(text, name):
         m, text = _consume_re(_DICT_END, text)
         if m:
             if args and kwargs:
-                obj = { 'args': args }
+                obj = _MaleableDict({ 'args': args })
                 obj.update(kwargs)
             elif args:
                 obj = args if len(args) > 1 else args[0]
@@ -115,7 +115,7 @@ def _parse_dict(text, name):
                 obj = kwargs
             else:
                 obj = _EmptyObject._INSTANCE
-            return {name: obj}, text
+            return _MaleableDict({name: obj}), text
         m, text = _consume_re(_DICT_SEPARATOR, text)
         if m:
             continue
@@ -139,7 +139,7 @@ def _parse(text):
     m, text = _consume_re(_BOOLEAN, text)
     if m:
         return m.group(1) == "True", text
-    m, text = _consume_re(_DETAILS_OMMITTED, text)
+    m, text = _consume_re(_DETAILS_OMITTED, text)
     if m:
         return _EmptyObject._INSTANCE, text
     m, text = _consume_re(_LIST, text)

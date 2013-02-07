@@ -179,6 +179,8 @@ def datastore_query_filter(query):
                         if 'PropertyValue_ReferenceValuePathElement' in el:
                             # This key exists in dev and in the 'python' production runtime.
                             path = el['PropertyValue_ReferenceValuePathElement']
+                        elif 'PathElement' in el:
+                            path = el['PathElement']
                         else:
                             # But it's a different key in the 'python27' production runtime.
                             path = el['ReferenceValuePathElement']
