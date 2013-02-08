@@ -50,7 +50,7 @@ def memcache_get_response(response):
 
     items = response['item']
     for i, item in enumerate(items):
-        if type(item) == dict:
+        if isinstance(item, dict):
             if 'MemcacheGetResponse_Item' in item:
                 # This key exists in dev and in the 'python' production runtime.
                 item = item['MemcacheGetResponse_Item']['value']
