@@ -25,9 +25,6 @@ class _EmptyObject(object):
 
     _INSTANCE = None
 
-    def __int__(self):
-        return 0
-
     def __str__(self):
         return ''
 
@@ -70,9 +67,19 @@ class _MaleableList(list):
 
 class _MaleableDict(dict):
     def __getitem__(self, key):
-        if self.__contains__(key):
-            return super(_MaleableDict, self).__getitem__(key)
+        result = self.get(key, _EmptyObject._INSTANCE)
+        if result is not _EmptyObject._INSTANCE:
+            return result
+
+        lower_key = key.lower()
+        for k, v in self.iteritems():
+            if k.lower() == lower_key:
+                 return v
+
         return _EmptyObject._INSTANCE
+
+    def __contains__(self, item):
+        return not isinstance(self.__getitem__(item), _EmptyObject)
 
 
 def _consume_re(re, text):
