@@ -19,23 +19,20 @@ _DICT_SEPARATOR = _LIST_SEPARATOR
 _DICT_END = re.compile(r"^\s*>\s*")
 
 
-class _EmptyObject(object):
+class _EmptyObject(str):
     """An "empty" object returning itself when indexed.
     Used to avoid KeyErrors and the like"""
 
     _INSTANCE = None
 
-    def __str__(self):
-        return ''
+    def __unicode__(self):
+        return u''
 
     def __nonzero__(self):
         return False
 
     def __getattr__(self, name):
         return _EmptyObject._INSTANCE
-
-    def __len__(self):
-        return 0
 
     def __getitem__(self, key):
         return _EmptyObject._INSTANCE
