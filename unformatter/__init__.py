@@ -88,8 +88,15 @@ def _consume_re(re, text):
 
 def _parse_string(text, quote_char):
     end = text.index(quote_char)
-    while text[end-1] == "\\":
-        end = text.index(quote_char, end+1)
+    while end >= 0:
+        if text[end-1] == "\\":
+            end = text.index(quote_char, end+1)
+            continue
+        if end >= len(text):
+            break
+        if text[end+1] in ',;>]':
+            break
+        end = text.index(quote_char, end+2)
     return text[:end].decode('string_escape', 'ignore'), text[end+1:]
 
 
