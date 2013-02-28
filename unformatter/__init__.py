@@ -140,6 +140,8 @@ def _parse_dict(text, name):
 
 
 def _parse(text):
+    if not text:
+        return _EmptyObject._INSTANCE, ""
     m, text = _consume_re(_STRING, text)
     if m:
         return _parse_string(text, m.group(1))
