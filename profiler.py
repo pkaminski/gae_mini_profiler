@@ -250,7 +250,7 @@ class RequestStats(object):
         if environ.get("QUERY_STRING"):
             self.url += "?%s" % environ.get("QUERY_STRING")
 
-        self.url_short = self.url
+        self.url_short = unicode(self.url, 'utf-8')
         if len(self.url_short) > 26:
             self.url_short = self.url_short[:26] + "..."
 
@@ -485,6 +485,7 @@ class RequestProfiler(object):
 class ProfilerWSGIMiddleware(object):
 
     def __init__(self, app, keep_appstats=True):
+        self.__dict__ = app.__dict__
         self.app = app
         self.keep_appstats = keep_appstats
 
