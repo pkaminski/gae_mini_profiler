@@ -270,9 +270,9 @@ class RequestStats(object):
         compressed_pickled = zlib.compress(pickled)
         if len(compressed_pickled) > memcache.MAX_VALUE_SIZE:
             logging.warning('RequestStats bigger (%d) '
-	        + 'than max memcache size (%d), even after compression',
-		len(compressed_pickled), memcache.MAX_VALUE_SIZE)
-	    return False
+                + 'than max memcache size (%d), even after compression',
+                len(compressed_pickled), memcache.MAX_VALUE_SIZE)
+            return False
 
         return memcache.set(RequestStats.memcache_key(self.request_id), compressed_pickled)
 
