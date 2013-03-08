@@ -61,64 +61,6 @@ class CurrentRequestId(object):
             CurrentRequestId._local.request_id = request_id
 
 
-class Mode(object):
-    """Possible profiler modes.
-    
-    TODO(kamens): switch this from an enum to a more sensible bitmask or other
-    alternative that supports multiple settings without an exploding number of
-    enums.
-    
-    TODO(kamens): when this is changed from an enum to a bitmask or other more
-    sensible object with multiple properties, we should pass a Mode object
-    around the rest of this code instead of using a simple string that this
-    static class is forced to examine (e.g. if self.mode.is_rpc_enabled()).
-    """
-
-    SIMPLE = "simple"  # Simple start/end timing for the request as a whole
-    CPU_INSTRUMENTED = "instrumented"  # Profile all function calls
-    CPU_SAMPLING = "sampling"  # Sample call stacks
-    RPC_ONLY = "rpc"  # Profile all RPC calls
-    RPC_AND_CPU_INSTRUMENTED = "rpc_instrumented" # RPCs and all fxn calls
-    RPC_AND_CPU_SAMPLING = "rpc_sampling" # RPCs and sample call stacks
-
-    @staticmethod
-    def get_mode(environ):
-        """Get the profiler mode requested by current request's headers &
-        cookies."""
-        if "HTTP_G_M_P_MODE" in environ:
-            mode = environ["HTTP_G_M_P_MODE"]
-        else:
-            mode = cookies.get_cookie_value("g-m-p-mode")
-
-        if (mode not in [
-                Mode.SIMPLE,
-                Mode.CPU_INSTRUMENTED,
-                Mode.CPU_SAMPLING,
-                Mode.RPC_ONLY,
-                Mode.RPC_AND_CPU_INSTRUMENTED,
-                Mode.RPC_AND_CPU_SAMPLING]):
-            mode = Mode.RPC_AND_CPU_INSTRUMENTED
-
-        return mode
-
-    @staticmethod
-    def is_rpc_enabled(mode):
-        return mode in [
-                Mode.RPC_ONLY,
-                Mode.RPC_AND_CPU_INSTRUMENTED,
-                Mode.RPC_AND_CPU_SAMPLING];
-
-    @staticmethod
-    def is_sampling_enabled(mode):
-        return mode in [
-                Mode.CPU_SAMPLING,
-                Mode.RPC_AND_CPU_SAMPLING];
-
-    @staticmethod
-    def is_instrumented_enabled(mode):
-        return mode in [
-                Mode.CPU_INSTRUMENTED,
-                Mode.RPC_AND_CPU_INSTRUMENTED];
 
 
 class SharedStatsHandler(RequestHandler):
@@ -360,7 +302,7 @@ class RequestProfiler(object):
         # Always track simple start/stop time.
         self.start = time.time()
 
-        if self.mode == Mode.SIMPLE:
+        if self.mode == config.Mode.SIMPLE:
 
             # Detailed recording is disabled.
             result = app(environ, start_response)
@@ -372,7 +314,7 @@ class RequestProfiler(object):
             # Add logging handler
             self.add_handler()
 
-            if Mode.is_rpc_enabled(self.mode):
+            if config.Mode.is_rpc_enabled(self.mode):
                 # Turn on AppStats monitoring for this request
                 # Note that we don't import appstats_profiler at the top of
                 # this file so we don't bring in a lot of imports for users who
@@ -389,7 +331,7 @@ class RequestProfiler(object):
             # TODO(kamens): both sampling_profiler and instrumented_profiler
             # could subclass the same class. Then they'd both be guaranteed to
             # implement run(), and the following if/else could be simplified.
-            if Mode.is_sampling_enabled(self.mode):
+            if config.Mode.is_sampling_enabled(self.mode):
                 # Turn on sampling profiling for this request.
                 # Note that we don't import sampling_profiler at the top of
                 # this file so we don't bring in a lot of imports for users who
@@ -398,7 +340,7 @@ class RequestProfiler(object):
                 self.sampling_prof = sampling_profiler.Profile()
                 result_fxn_wrapper = self.sampling_prof.run
 
-            elif Mode.is_instrumented_enabled(self.mode):
+            elif config.Mode.is_instrumented_enabled(self.mode):
                 # Turn on cProfile instrumented profiling for this request
                 # Note that we don't import instrumented_profiler at the top of
                 # this file so we don't bring in a lot of imports for users who
@@ -499,6 +441,7 @@ class ProfilerWSGIMiddleware(object):
             # Set a random ID for this request so we can look up stats later
             import base64
             CurrentRequestId.set(base64.urlsafe_b64encode(os.urandom(5)))
+            profile_mode = config.get_mode(environ, cookies)
 
             # Send request id in headers so jQuery ajax calls can pick
             # up profiles.
@@ -514,6 +457,8 @@ class ProfilerWSGIMiddleware(object):
                 # Append headers used when displaying profiler results from ajax requests
                 headers.append(("X-MiniProfiler-Id", CurrentRequestId.get()))
                 headers.append(("X-MiniProfiler-QS", environ.get("QUERY_STRING")))
+                headers.append(("Set-Cookie",
+                    cookies.set_cookie_value("g-m-p-mode", profile_mode, path="/")))
 
                 return start_response(status, headers, exc_info)
 
@@ -536,8 +481,7 @@ class ProfilerWSGIMiddleware(object):
                                     else old_memcache_delete(key, *args, **kwargs)))
 
             try:
-                profiler = RequestProfiler(CurrentRequestId.get(),
-                                           Mode.get_mode(environ))
+                profiler = RequestProfiler(CurrentRequestId.get(), profile_mode)
                 result = profiler.profile_start_response(self.app, environ, profiled_start_response)
                 for value in result:
                     yield value
