@@ -43,22 +43,13 @@ class CurrentRequestId(object):
     _local = threading.local()
     _local.request_id = None
 
-    # On the devserver don't use threading.local b/c it's reset on Thread.start
-    dev_server_request_id = None
-
     @staticmethod
     def get():
-        if dev_server:
-            return CurrentRequestId.dev_server_request_id
-        else:
-            return CurrentRequestId._local.request_id
+        return CurrentRequestId._local.request_id
 
     @staticmethod
     def set(request_id):
-        if dev_server:
-            CurrentRequestId.dev_server_request_id = request_id
-        else:
-            CurrentRequestId._local.request_id = request_id
+        CurrentRequestId._local.request_id = request_id
 
 
 
