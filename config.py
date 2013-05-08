@@ -69,7 +69,7 @@ _mode = lib_config.register("gae_mini_profiler", {
     "get_default_mode_development": lambda: Mode.RPC_AND_CPU_INSTRUMENTED})
 
 
-_DEVELOPMENT_SERVER = os.environ["SERVER_SOFTWARE"].startswith("Devel")
+_DEVELOPMENT_SERVER = os.environ.get("SERVER_SOFTWARE", "").startswith("Devel")
 
 
 def should_profile():
