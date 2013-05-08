@@ -31,7 +31,7 @@ import pickle
 import config
 import util
 
-dev_server = os.environ["SERVER_SOFTWARE"].startswith("Devel")
+dev_server = os.environ.get("SERVER_SOFTWARE", "").startswith("Devel")
 
 
 class CurrentRequestId(object):

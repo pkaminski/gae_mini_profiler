@@ -4,6 +4,7 @@ try:
 except ImportError:
     import simplejson as json
 
+import config
 import profiler
 
 
@@ -22,4 +23,6 @@ def profiler_includes_request_id(request_id, show_immediately=False):
 
 
 def profiler_includes():
+    if not config.should_profile():
+        return ''
     return profiler_includes_request_id(profiler.CurrentRequestId.get())
