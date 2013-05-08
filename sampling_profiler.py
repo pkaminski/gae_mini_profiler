@@ -28,8 +28,6 @@ import traceback
 
 from gae_mini_profiler import util
 
-_is_dev_server = os.environ["SERVER_SOFTWARE"].startswith("Devel")
-
 class InspectingThread(threading.Thread):
     """Thread that periodically triggers profiler inspections."""
     SAMPLES_PER_SECOND = 250
@@ -60,12 +58,6 @@ class InspectingThread(threading.Thread):
 
             # ...then sleep and let it do some more work.
             time.sleep(1.0 / InspectingThread.SAMPLES_PER_SECOND)
-
-            # Only take one sample per thread if this is running on the
-            # single-threaded dev server.
-            if _is_dev_server and len(self.profile.samples) > 0:
-                break
-
 
 class ProfileSample(object):
     """Single stack trace sample gathered during a periodic inspection."""
@@ -111,7 +103,6 @@ class Profile(object):
         return {
                 "calls": calls,
                 "total_samples": total_samples,
-                "is_dev_server": _is_dev_server,
             }
 
     def take_sample(self):
@@ -121,30 +112,12 @@ class Profile(object):
 
             # ...but only sample from the main request thread.
 
-            if _is_dev_server:
-                # In development, current_request_thread_id won't be set
-                # properly. threading.current_thread().ident always returns -1
-                # in dev. So instead, we just take a peek at the stack's
-                # current package to figure out if it is the request thread.
-                # Even though the dev server is single-threaded,
-                # sys._current_frames will return multiple threads, because
-                # some of them are spawned by the App Engine dev server for
-                # internal purposes. We don't want to sample these internal dev
-                # server threads -- we want to sample the thread that is
-                # running the current request. Since the dev server will be
-                # running this sampling code immediately from the run() code
-                # below, we can spot this thread's stack by looking at its
-                # global namespace (f_globals) and making sure it's currently
-                # in the gae_mini_profiler package.
-                should_sample = (stack.f_globals["__package__"] ==
-                        "gae_mini_profiler")
-            else:
-                # In production, current_request_thread_id will be set properly
-                # by threading.current_thread().ident.
-                # TODO(kamens): this profiler will need work if we ever
-                # actually use multiple threads in a single request and want to
-                # profile more than one of them.
-                should_sample = thread_id == self.current_request_thread_id
+            # In production, current_request_thread_id will be set properly
+            # by threading.current_thread().ident.
+            # TODO(kamens): this profiler will need work if we ever
+            # actually use multiple threads in a single request and want to
+            # profile more than one of them.
+            should_sample = thread_id == self.current_request_thread_id
 
             if should_sample:
                 # Grab a sample of this thread's current stack
