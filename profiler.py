@@ -179,6 +179,8 @@ class RequestStats(object):
         # https://developers.google.com/appengine/docs/python/logs/
         self.logging_request_id = profiler.logging_request_id
 
+        self.method = environ.get("REQUEST_METHOD")
+
         self.url = environ.get("PATH_INFO")
         if environ.get("QUERY_STRING"):
             self.url += "?%s" % environ.get("QUERY_STRING")
