@@ -233,7 +233,7 @@ class RequestStatsHandler(RequestHandler):
 
 class RequestStats(object):
 
-    serialized_properties = ["request_id", "url", "url_short", "s_dt",
+    serialized_properties = ["request_id", "method", "url", "url_short", "s_dt",
                              "profiler_results", "appstats_results", "mode",
                              "temporary_redirect", "logs",
                              "logging_request_id"]
@@ -245,6 +245,8 @@ class RequestStats(object):
         # App Engine's logservice request_id
         # https://developers.google.com/appengine/docs/python/logs/
         self.logging_request_id = profiler.logging_request_id
+
+        self.method = environ.get("REQUEST_METHOD")
 
         self.url = environ.get("PATH_INFO")
         if environ.get("QUERY_STRING"):

@@ -94,6 +94,11 @@
     float:right;
 }
 
+.g-m-p .method {
+    font-weight: normal;
+    color: #777;
+}
+
 .g-m-p .url {
     font-size: 125%;
 }
