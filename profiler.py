@@ -166,7 +166,7 @@ class RequestStatsHandler(RequestHandler):
 
 class RequestStats(object):
 
-    serialized_properties = ["request_id", "url", "url_short", "s_dt",
+    serialized_properties = ["request_id", "method", "url", "url_short", "s_dt",
                              "profiler_results", "appstats_results", "mode",
                              "temporary_redirect", "logs",
                              "logging_request_id"]
